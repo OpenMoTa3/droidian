@@ -69,7 +69,7 @@ jobs:
       - name: Checkout submodules
         run: git submodule update --init --recursive
 
-      # 关键步骤：自动从内核仓库抓取最新编译好的 deb 包注入 apt/ 目录
+      # 1. 抓取内核编译产物注入 apt/
       - name: Fetch Kernel Debs from Kernel Repo
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -78,6 +78,50 @@ jobs:
           echo "Fetching latest kernel artifact from OpenMoTa3/kernel-fairphone-sm7225..."
           gh run download --repo OpenMoTa3/kernel-fairphone-sm7225 --name droidian-fp4-kernel-deb --dir apt/ || true
           echo "Current deb packages in apt/:"
+          ls -la apt/
+
+      # 2. 全自动拉取 UT FP4 硬件配置并构建 adaptation Deb 包注入 apt/
+      - name: Build and Inject FP4 Adaptation Package
+        run: |
+          echo "=== 1. 克隆 UBports FP4 硬件仓库 ==="
+          git clone --depth 1 https://gitlab.com/ubports/porting/reference-device-ports/android11/fairphone-4/fairphone-fp4.git /tmp/fp4-ut
+
+          echo "=== 2. 创建 Debian 适配包骨架 ==="
+          ADAPT_DIR="/tmp/adaptation-fairphone-fp4"
+          rm -rf ${ADAPT_DIR}
+          mkdir -p ${ADAPT_DIR}/DEBIAN
+          mkdir -p ${ADAPT_DIR}/etc
+          mkdir -p ${ADAPT_DIR}/usr
+
+          # 将 UBports 的硬件 overlay 注入适配包
+          cp -r /tmp/fp4-ut/overlay/system/* ${ADAPT_DIR}/
+
+          # 写入标准 control 元数据
+          cat << 'EOF' > ${ADAPT_DIR}/DEBIAN/control
+Package: adaptation-fairphone-fp4
+Version: 1.0.0
+Section: misc
+Priority: optional
+Architecture: arm64
+Maintainer: OpenMoTa3 <noreply@github.com>
+Depends: adaptation-hybris, lxc-android
+Description: Adaptation package for Fairphone 4 (SM7225) on Droidian
+EOF
+
+          # 写入 postinst 脚本确保 udev 规则自动重载生效
+          cat << 'EOF' > ${ADAPT_DIR}/DEBIAN/postinst
+#!/bin/sh
+set -e
+udevadm control --reload-rules || true
+udevadm trigger || true
+exit 0
+EOF
+          chmod 755 ${ADAPT_DIR}/DEBIAN/postinst
+
+          echo "=== 3. 打包并注入 apt/ 目录 ==="
+          dpkg-deb --build --root-owner-group ${ADAPT_DIR} apt/adaptation-fairphone-fp4_1.0.0_arm64.deb
+
+          echo "=== 当前 apt/ 目录下的全部待集成 Deb 包 ==="
           ls -la apt/
 
       - name: Create build dir
@@ -112,7 +156,6 @@ jobs:
               ${{ matrix.config.droidian_variant }} && \
             debos --disable-fakemachine generated/droidian.yaml
           '
-          # 将 /tmp/buildd-results 复制到当前目录 out/
           cp -r /tmp/buildd-results/* out/ 2>/dev/null || true
 
       - name: Upload artifacts
