@@ -1,14 +1,9 @@
-devices:
-  - name: "Fairphone 4"
-    vendor: fairphone
-    codename: fp4
-    product: fairphone_fp4
-    arch: arm64
-    apilevel: 30
-    edition: phosh
-    variant: phone
-    droidian_variant: droidian
-    kernel:
-      package: linux-image-4.19-fairphone-fp4
-    packages:
-      - adaptation-fairphone-fp4
+fairphone_fp4:
+  type: rootfs
+  arch: arm64
+  apilevel: 30
+  edition: phosh
+  variant: phone
+  use_internal_repository: false
+  packages:
+    - adaptation-fairphone-fp4
