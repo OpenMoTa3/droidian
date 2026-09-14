@@ -73,6 +73,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          sudo apt-get update && sudo apt-get install -y dpkg-dev
           mkdir -p apt
           gh run download --repo OpenMoTa3/kernel-fairphone-sm7225 --name droidian-fp4-kernel-deb --dir apt/ 2>/dev/null || true
           
@@ -80,17 +81,26 @@ jobs:
           if echo "$TARGET_PRODUCT" | grep -q "fp4"; then
             echo ">>> 命中 Fairphone 4 (${{ matrix.config.product }})，开始拉取并编译适配包 <<<"
             git clone --depth 1 https://gitlab.com/ubports/porting/reference-device-ports/android11/fairphone-4/fairphone-fp4.git /tmp/fp4-ut
+            
+            # 1. 构建 adaptation-fairphone-fp4 主包
             mkdir -p /tmp/adapt/DEBIAN /tmp/adapt/etc/udev/rules.d
             [ -d /tmp/fp4-ut/overlay/system/etc/udev/rules.d ] && cp -r /tmp/fp4-ut/overlay/system/etc/udev/rules.d/* /tmp/adapt/etc/udev/rules.d/
-            
-            printf "Package: adaptation-fairphone-fp4\nVersion: 1.0.0\nSection: misc\nPriority: optional\nArchitecture: arm64\nMaintainer: OpenMoTa3 <noreply@github.com>\nDepends: udev\nDescription: FP4 Adaptation\n" > /tmp/adapt/DEBIAN/control
-            
+            printf "Package: adaptation-fairphone-fp4\nVersion: 1.0.0\nSection: misc\nPriority: optional\nArchitecture: arm64\nMaintainer: OpenMoTa3 <noreply@github.com>\nDepends: udev, adaptation-fairphone-fp4-configs\nDescription: FP4 Adaptation\n" > /tmp/adapt/DEBIAN/control
             dpkg-deb --build --root-owner-group /tmp/adapt apt/adaptation-fairphone-fp4_1.0.0_arm64.deb
-          else
-            echo ">>> 非 FP4 设备，跳过专属适配包编译 <<<"
+            
+            # 2. 构建 adaptation-fairphone-fp4-configs 配置包（避免 debos install-adaptation 报错）
+            mkdir -p /tmp/adapt-cfg/DEBIAN
+            printf "Package: adaptation-fairphone-fp4-configs\nVersion: 1.0.0\nSection: misc\nPriority: optional\nArchitecture: arm64\nMaintainer: OpenMoTa3 <noreply@github.com>\nDescription: FP4 Adaptation Configs\n" > /tmp/adapt-cfg/DEBIAN/control
+            dpkg-deb --build --root-owner-group /tmp/adapt-cfg apt/adaptation-fairphone-fp4-configs_1.0.0_arm64.deb
           fi
           
-          echo "=== 最终 apt 目录内容 ==="
+          # 3. 为 apt 目录生成 Packages 索引文件
+          cd apt
+          dpkg-scanpackages . /dev/null | gzip -9c > Packages.gz
+          dpkg-scanpackages . /dev/null > Packages
+          cd ..
+          
+          echo "=== 最终 apt 目录内容及索引 ==="
           ls -la apt/
 
       - name: Create build dir
