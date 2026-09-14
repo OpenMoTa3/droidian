@@ -4,6 +4,7 @@
 .fairphone_fp4_packages:
   packages: &fairphone_fp4_packages
     - linux-image-4.19-fairphone-fp4
+    - linux-bootimage-4.19-fairphone-fp4
     - adaptation-fairphone-fp4
     - adaptation-fairphone-fp4-configs
 
