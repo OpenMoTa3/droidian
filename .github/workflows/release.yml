@@ -53,29 +53,15 @@ jobs:
           mkdir -p ${ADAPT_DIR}/etc/udev/rules.d
           mkdir -p ${ADAPT_DIR}/usr/lib/droidian
           
-          # 提取 udev 规则
           if [ -d "/tmp/fp4-ut/overlay/system/etc/udev/rules.d" ]; then
             cp -rv /tmp/fp4-ut/overlay/system/etc/udev/rules.d/* ${ADAPT_DIR}/etc/udev/rules.d/
           fi
-          # 提取 pulse 音频配置（如果有）
           if [ -d "/tmp/fp4-ut/overlay/system/etc/pulse" ]; then
             mkdir -p ${ADAPT_DIR}/etc/pulse
             cp -rv /tmp/fp4-ut/overlay/system/etc/pulse/* ${ADAPT_DIR}/etc/pulse/
           fi
           
-          # 写入标准 control（末尾必须有换行）
-          cat << 'EOF' > ${ADAPT_DIR}/DEBIAN/control
-Package: adaptation-fairphone-fp4
-Version: 1.0.0
-Section: misc
-Priority: optional
-Architecture: arm64
-Maintainer: OpenMoTa3 <noreply@github.com>
-Depends: udev, adaptation-fairphone-fp4-configs
-Description: Device adaptation rules for Fairphone 4 on Droidian
-
-EOF
-
+          printf "Package: adaptation-fairphone-fp4\nVersion: 1.0.0\nSection: misc\nPriority: optional\nArchitecture: arm64\nMaintainer: OpenMoTa3 <noreply@github.com>\nDepends: udev, adaptation-fairphone-fp4-configs\nDescription: Device adaptation rules for Fairphone 4 on Droidian\n\n" > ${ADAPT_DIR}/DEBIAN/control
           dpkg-deb --build --root-owner-group ${ADAPT_DIR} /tmp/debs/adaptation-fairphone-fp4_1.0.0_arm64.deb
 
           echo "=== 3. 构建 adaptation-fairphone-fp4-configs 配置包 ==="
@@ -84,26 +70,11 @@ EOF
           mkdir -p ${CFG_DIR}/DEBIAN
           mkdir -p ${CFG_DIR}/var/lib/environment/phosh
           
-          # 写入 FP4 屏幕缩放与 Wayland 显示配置
-          cat << 'EOF' > ${CFG_DIR}/var/lib/environment/phosh/fairphone-fp4.conf
-PHOSH_MOBILE_SETTINGS_SCALE=2
-EOF
-
-          # 写入 control（末尾必须有换行）
-          cat << 'EOF' > ${CFG_DIR}/DEBIAN/control
-Package: adaptation-fairphone-fp4-configs
-Version: 1.0.0
-Section: misc
-Priority: optional
-Architecture: arm64
-Maintainer: OpenMoTa3 <noreply@github.com>
-Description: Device adaptation configs for Fairphone 4 on Droidian
-
-EOF
-
+          printf "PHOSH_MOBILE_SETTINGS_SCALE=2\n" > ${CFG_DIR}/var/lib/environment/phosh/fairphone-fp4.conf
+          printf "Package: adaptation-fairphone-fp4-configs\nVersion: 1.0.0\nSection: misc\nPriority: optional\nArchitecture: arm64\nMaintainer: OpenMoTa3 <noreply@github.com>\nDescription: Device adaptation configs for Fairphone 4 on Droidian\n\n" > ${CFG_DIR}/DEBIAN/control
           dpkg-deb --build --root-owner-group ${CFG_DIR} /tmp/debs/adaptation-fairphone-fp4-configs_1.0.0_arm64.deb
 
-          echo "=== 4. 产物校验（检查大小，杜绝 0 字节） ==="
+          echo "=== 4. 产物校验 ==="
           ls -lh /tmp/debs/
           for deb in /tmp/debs/*.deb; do
             SIZE=$(stat -c%s "$deb")
