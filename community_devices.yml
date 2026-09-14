@@ -3,11 +3,9 @@ fairphone_fp4:
   device: fp4
   arch: arm64
   api: 30
-  type: phone
-  rootfs_type: hybris
-  edition: phone
   repositories:
     - deb [trusted=yes] https://openmota3.github.io/droidian-repo/ bookworm main
   packages:
     - linux-image-4.19-fairphone-fp4
     - adaptation-fairphone-fp4
+    - adaptation-fairphone-fp4-configs
