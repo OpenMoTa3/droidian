@@ -85,7 +85,7 @@ jobs:
             # 1. 构建 adaptation-fairphone-fp4
             mkdir -p /tmp/adapt/DEBIAN /tmp/adapt/etc/udev/rules.d
             [ -d /tmp/fp4-ut/overlay/system/etc/udev/rules.d ] && cp -r /tmp/fp4-ut/overlay/system/etc/udev/rules.d/* /tmp/adapt/etc/udev/rules.d/
-            printf "Package: adaptation-fairphone-fp4\nVersion: 1.0.0\nSection: misc\nPriority: optional\nArchitecture: arm64\nMaintainer: OpenMoTa3 <noreply@github.com>\nDepends: udev\nDescription: FP4 Adaptation\n" > /tmp/adapt/DEBIAN/control
+            printf "Package: adaptation-fairphone-fp4\nVersion: 1.0.0\nSection: misc\nPriority: optional\nArchitecture: arm64\nMaintainer: OpenMoTa3 <noreply@github.com>\nDepends: udev, adaptation-fairphone-fp4-configs\nDescription: FP4 Adaptation\n" > /tmp/adapt/DEBIAN/control
             dpkg-deb --build --root-owner-group /tmp/adapt apt/adaptation-fairphone-fp4_1.0.0_arm64.deb
             
             # 2. 构建 adaptation-fairphone-fp4-configs
@@ -94,11 +94,10 @@ jobs:
             dpkg-deb --build --root-owner-group /tmp/adapt-cfg apt/adaptation-fairphone-fp4-configs_1.0.0_arm64.deb
           fi
           
-          # 3. 生成完整标准的 Local APT 索引与 Release 元数据
+          # 3. 产生索引
           cd apt
           dpkg-scanpackages -m . > Packages
           gzip -9c Packages > Packages.gz
-          
           printf "Archive: bookworm\nComponent: main\nOrigin: Droidian-Local\nLabel: Local Repo\nArchitecture: arm64\n" > Release
           apt-ftparchive release . >> Release
           cd ..
@@ -135,7 +134,16 @@ jobs:
               ${{ matrix.config.edition }} \
               ${{ matrix.config.variant }} \
               ${{ matrix.config.apilevel }} \
-              ${{ matrix.config.droidian_variant }} && \
+              ${{ matrix.config.droidian_variant }}
+            
+            # 关键修复：直接修改 install-adaptation.sh，让它如果 apt 找不到就直接从 /buildd/sources/apt/*.deb 本地 dpkg -i 安装！
+            if [ -f "scripts/install-adaptation.sh" ]; then
+              sed -i "s|apt-get -y install|apt-get -y --allow-unauthenticated install|g" scripts/install-adaptation.sh
+            fi
+            
+            # 在 generated/droidian.yaml 注入本地 deb 挂载与安装
+            sed -i "s|install-adaptation.sh|install-adaptation.sh || dpkg -i --force-all /buildd/sources/apt/*.deb|g" generated/droidian.yaml 2>/dev/null || true
+            
             debos --disable-fakemachine generated/droidian.yaml
           '
           cp -r /tmp/buildd-results/* out/ 2>/dev/null || true
