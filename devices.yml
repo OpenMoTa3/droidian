@@ -1,6 +1,11 @@
 ########################################################################
 # Basic anchors                                                        #
 ########################################################################
+.fairphone_fp4_packages:
+  packages: &fairphone_fp4_packages
+    - linux-image-4.19-fairphone-fp4
+    - adaptation-fairphone-fp4
+    - adaptation-fairphone-fp4-configs
 
 .devtools_packages:
   packages: &devtools_packages
@@ -248,3 +253,17 @@ xiaomi_miatoll:
   apilevel: 29
 
   packages: *xiaomi_miatoll_packages
+
+#
+# Fairphone
+#
+
+# Fairphone 4 (FP4)
+fairphone_fp4:
+  type: image
+  arch: arm64
+  edition: phosh
+  variant: phone
+  apilevel: 30
+
+  packages: *fairphone_fp4_packages
