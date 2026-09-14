@@ -51,19 +51,21 @@ jobs:
           rm -rf ${ADAPT_DIR}
           mkdir -p ${ADAPT_DIR}/DEBIAN
           
-          # 全量复制硬件文件
+          # 全量复制硬件驱动文件
           cp -rv /tmp/fp4-ut/overlay/system/* ${ADAPT_DIR}/
           
-          # 核心修复：删除与 Debian 基础库 libdeviceinfo0 冲突的 UT 专有文件
+          # 核心修复 1：删除与 libdeviceinfo0 冲突的目录
           rm -rf ${ADAPT_DIR}/etc/deviceinfo
           
-          # 确保 udev 规则就位
+          # 核心修复 2：将 udev 规则迁移到 /etc/udev/rules.d/ 并重命名，消除与 lxc-android 的 /lib 冲突
           mkdir -p ${ADAPT_DIR}/etc/udev/rules.d
           if [ -d "${ADAPT_DIR}/lib/udev/rules.d" ]; then
-            cp -rv ${ADAPT_DIR}/lib/udev/rules.d/* ${ADAPT_DIR}/etc/udev/rules.d/
+            [ -f "${ADAPT_DIR}/lib/udev/rules.d/70-android.rules" ] && cp -v "${ADAPT_DIR}/lib/udev/rules.d/70-android.rules" "${ADAPT_DIR}/etc/udev/rules.d/70-fairphone-fp4.rules"
+            [ -f "${ADAPT_DIR}/lib/udev/rules.d/99-android.rules" ] && cp -v "${ADAPT_DIR}/lib/udev/rules.d/99-android.rules" "${ADAPT_DIR}/etc/udev/rules.d/99-fairphone-fp4.rules"
+            rm -rf ${ADAPT_DIR}/lib/udev
           fi
           
-          printf "Package: adaptation-fairphone-fp4\nVersion: 1.0.0\nSection: misc\nPriority: optional\nArchitecture: arm64\nMaintainer: OpenMoTa3 <noreply@github.com>\nDepends: udev, adaptation-fairphone-fp4-configs\nReplaces: libdeviceinfo0\nBreaks: libdeviceinfo0\nDescription: Device adaptation rules and drivers for Fairphone 4 on Droidian\n\n" > ${ADAPT_DIR}/DEBIAN/control
+          printf "Package: adaptation-fairphone-fp4\nVersion: 1.0.0\nSection: misc\nPriority: optional\nArchitecture: arm64\nMaintainer: OpenMoTa3 <noreply@github.com>\nDepends: udev, adaptation-fairphone-fp4-configs\nDescription: Device adaptation rules and drivers for Fairphone 4 on Droidian\n\n" > ${ADAPT_DIR}/DEBIAN/control
           dpkg-deb --build --root-owner-group ${ADAPT_DIR} /tmp/debs/adaptation-fairphone-fp4_1.0.0_arm64.deb
 
           echo "=== 3. 构建 adaptation-fairphone-fp4-configs 配置包 ==="
@@ -73,7 +75,6 @@ jobs:
           mkdir -p ${CFG_DIR}/var/lib/environment/phosh
           mkdir -p ${CFG_DIR}/etc/device-configuration.d
           
-          # 填充真实设备显示与缩放配置（避免配置为空）
           printf "PHOSH_MOBILE_SETTINGS_SCALE=2\n" > ${CFG_DIR}/var/lib/environment/phosh/fairphone-fp4.conf
           printf "GRID_UNIT_PX=18\nDEFAULT_FONT_SIZE=11\n" > ${CFG_DIR}/etc/device-configuration.d/fairphone-fp4.conf
           
@@ -132,7 +133,6 @@ jobs:
       - name: Checkout submodules
         run: git submodule update --init --recursive
 
-      # 官方标准预注入：向 pre-overlay 写入自定义 APT 源
       - name: Setup Custom APT Source in pre-overlay
         run: |
           mkdir -p pre-overlay/etc/apt/sources.list.d
