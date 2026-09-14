@@ -1,13 +1,10 @@
-.fairphone_fp4_packages:
-  packages: &fairphone_fp4_packages
-    - adaptation-fairphone-fp4
-    - adaptation-fairphone-fp4-configs
-
 fairphone_fp4:
-  type: image
+  vendor: fairphone
+  device: fp4
   arch: arm64
-  edition: phosh
-  variant: phone
-  apilevel: 30
-
-  packages: *fairphone_fp4_packages
+  api: 30
+  repositories:
+    - deb [trusted=yes] https://openmota3.github.io/droidian-repo/ bookworm main
+  packages:
+    - linux-image-4.19-fairphone-fp4
+    - adaptation-fairphone-fp4
