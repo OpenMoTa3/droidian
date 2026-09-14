@@ -138,16 +138,33 @@ jobs:
         run: |
           docker exec $CONTAINER_HASH /bin/sh -c '
             cd /buildd/sources
+            
+            # 1. 生成 Debos 官方 recipe
             DROIDIAN_VERSION="${{ env.DROIDIAN_VERSION }}" ./generate_device_recipe.py \
               ${{ matrix.config.product }} \
               ${{ matrix.config.arch }} \
               ${{ matrix.config.edition }} \
               ${{ matrix.config.variant }} \
               ${{ matrix.config.apilevel }} \
-              ${{ matrix.config.droidian_variant }} && \
+              ${{ matrix.config.droidian_variant }}
+            
+            # 2. 【核心修复】强制向 install-adaptation.sh 开头注入你的 GitHub Pages 源
+            if [ -f "scripts/install-adaptation.sh" ]; then
+              sed -i "2i echo \"deb [trusted=yes] https://openmota3.github.io/droidian-repo/ stable main\" > /etc/apt/sources.list.d/openmota3-pages.list\napt-get update" scripts/install-adaptation.sh
+              echo "=== install-adaptation.sh 注入结果预览 ==="
+              head -n 10 scripts/install-adaptation.sh
+            fi
+
+            # 3. 启动 debos 构建
             debos --disable-fakemachine generated/droidian.yaml
           '
-          cp -r /tmp/buildd-results/* out/ 2>/dev/null || true
+          # 收集产物
+          sudo chmod -R 777 /tmp/buildd-results/ || true
+          cp -rv /tmp/buildd-results/* out/ 2>/dev/null || true
+          sudo find . -maxdepth 2 -type f \( -name "*.tar*" -o -name "*.img*" -o -name "*.zip*" -o -name "*.xz" \) ! -path "./out/*" -exec cp -v {} out/ \; 2>/dev/null || true
+          
+          echo "=== 最终收集产物 ==="
+          ls -la out/
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
