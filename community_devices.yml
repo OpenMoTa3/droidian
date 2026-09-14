@@ -5,6 +5,7 @@ fairphone_fp4:
   api: 30
   type: phone
   rootfs_type: hybris
+  edition: phone
   repositories:
     - deb [trusted=yes] https://openmota3.github.io/droidian-repo/ bookworm main
   packages:
