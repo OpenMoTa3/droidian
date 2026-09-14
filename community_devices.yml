@@ -3,6 +3,8 @@ fairphone_fp4:
   device: fp4
   arch: arm64
   api: 30
+  type: phone
+  rootfs_type: hybris
   repositories:
     - deb [trusted=yes] https://openmota3.github.io/droidian-repo/ bookworm main
   packages:
