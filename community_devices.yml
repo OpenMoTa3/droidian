@@ -1,4 +1,5 @@
 fairphone_fp4:
+  type: image
   vendor: fairphone
   device: fp4
   arch: arm64
