@@ -47,22 +47,74 @@ jobs:
           git clone --depth 1 https://gitlab.com/ubports/porting/reference-device-ports/android11/fairphone-4/fairphone-fp4.git /tmp/fp4-ut
           
           echo "=== 2. 构建 adaptation-fairphone-fp4 主包 ==="
-          mkdir -p /tmp/adapt/DEBIAN /tmp/adapt/etc/udev/rules.d
+          ADAPT_DIR="/tmp/adapt"
+          rm -rf ${ADAPT_DIR}
+          mkdir -p ${ADAPT_DIR}/DEBIAN
+          mkdir -p ${ADAPT_DIR}/etc/udev/rules.d
+          mkdir -p ${ADAPT_DIR}/usr/lib/droidian
+          
+          # 提取 udev 规则
           if [ -d "/tmp/fp4-ut/overlay/system/etc/udev/rules.d" ]; then
-            cp -r /tmp/fp4-ut/overlay/system/etc/udev/rules.d/* /tmp/adapt/etc/udev/rules.d/
+            cp -rv /tmp/fp4-ut/overlay/system/etc/udev/rules.d/* ${ADAPT_DIR}/etc/udev/rules.d/
           fi
-          printf "Package: adaptation-fairphone-fp4\nVersion: 1.0.0\nSection: misc\nPriority: optional\nArchitecture: arm64\nMaintainer: OpenMoTa3 <noreply@github.com>\nDepends: udev, adaptation-fairphone-fp4-configs\nDescription: Device adaptation rules for Fairphone 4 on Droidian\n" > /tmp/adapt/DEBIAN/control
-          dpkg-deb --build --root-owner-group /tmp/adapt /tmp/debs/adaptation-fairphone-fp4_1.0.0_arm64.deb
+          # 提取 pulse 音频配置（如果有）
+          if [ -d "/tmp/fp4-ut/overlay/system/etc/pulse" ]; then
+            mkdir -p ${ADAPT_DIR}/etc/pulse
+            cp -rv /tmp/fp4-ut/overlay/system/etc/pulse/* ${ADAPT_DIR}/etc/pulse/
+          fi
+          
+          # 写入标准 control（末尾必须有换行）
+          cat << 'EOF' > ${ADAPT_DIR}/DEBIAN/control
+Package: adaptation-fairphone-fp4
+Version: 1.0.0
+Section: misc
+Priority: optional
+Architecture: arm64
+Maintainer: OpenMoTa3 <noreply@github.com>
+Depends: udev, adaptation-fairphone-fp4-configs
+Description: Device adaptation rules for Fairphone 4 on Droidian
+
+EOF
+
+          dpkg-deb --build --root-owner-group ${ADAPT_DIR} /tmp/debs/adaptation-fairphone-fp4_1.0.0_arm64.deb
 
           echo "=== 3. 构建 adaptation-fairphone-fp4-configs 配置包 ==="
-          mkdir -p /tmp/adapt-cfg/DEBIAN
-          printf "Package: adaptation-fairphone-fp4-configs\nVersion: 1.0.0\nSection: misc\nPriority: optional\nArchitecture: arm64\nMaintainer: OpenMoTa3 <noreply@github.com>\nDescription: Device adaptation configs for Fairphone 4 on Droidian\n" > /tmp/adapt-cfg/DEBIAN/control
-          dpkg-deb --build --root-owner-group /tmp/adapt-cfg /tmp/debs/adaptation-fairphone-fp4-configs_1.0.0_arm64.deb
+          CFG_DIR="/tmp/adapt-cfg"
+          rm -rf ${CFG_DIR}
+          mkdir -p ${CFG_DIR}/DEBIAN
+          mkdir -p ${CFG_DIR}/var/lib/environment/phosh
+          
+          # 写入 FP4 屏幕缩放与 Wayland 显示配置
+          cat << 'EOF' > ${CFG_DIR}/var/lib/environment/phosh/fairphone-fp4.conf
+PHOSH_MOBILE_SETTINGS_SCALE=2
+EOF
 
-          echo "=== 生成的适配包清单 ==="
-          ls -la /tmp/debs/
+          # 写入 control（末尾必须有换行）
+          cat << 'EOF' > ${CFG_DIR}/DEBIAN/control
+Package: adaptation-fairphone-fp4-configs
+Version: 1.0.0
+Section: misc
+Priority: optional
+Architecture: arm64
+Maintainer: OpenMoTa3 <noreply@github.com>
+Description: Device adaptation configs for Fairphone 4 on Droidian
 
-      # 将这两个适配包作为公开 Artifacts 上传，供 APT 仓库抓取
+EOF
+
+          dpkg-deb --build --root-owner-group ${CFG_DIR} /tmp/debs/adaptation-fairphone-fp4-configs_1.0.0_arm64.deb
+
+          echo "=== 4. 产物校验（检查大小，杜绝 0 字节） ==="
+          ls -lh /tmp/debs/
+          for deb in /tmp/debs/*.deb; do
+            SIZE=$(stat -c%s "$deb")
+            if [ "$SIZE" -lt 200 ]; then
+              echo "Error: $deb 大小异常 ($SIZE 字节)，构建失败！"
+              exit 1
+            fi
+            echo ">>> 校验通过: $deb ($SIZE bytes)"
+            dpkg-deb -c "$deb"
+          done
+
       - name: Upload Adaptation Artifacts
         uses: actions/upload-artifact@v4
         with:
