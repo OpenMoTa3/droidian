@@ -8,5 +8,3 @@ fairphone_fp4:
     - deb [trusted=yes] https://openmota3.github.io/droidian-repo/ stable main
   packages:
     - linux-image-4.19-fairphone-fp4
-    - adaptation-fairphone-fp4
-    - adaptation-fairphone-fp4-configs
