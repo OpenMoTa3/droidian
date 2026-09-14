@@ -5,7 +5,7 @@ fairphone_fp4:
   arch: arm64
   api: 30
   repositories:
-    - deb [trusted=yes] https://openmota3.github.io/droidian-repo/ bookworm main
+    - deb [trusted=yes] https://openmota3.github.io/droidian-repo/ stable main
   packages:
     - linux-image-4.19-fairphone-fp4
     - adaptation-fairphone-fp4
