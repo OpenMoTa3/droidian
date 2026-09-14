@@ -51,10 +51,7 @@ jobs:
           rm -rf ${ADAPT_DIR}
           mkdir -p ${ADAPT_DIR}/DEBIAN
           
-          # 全量复制 overlay/system 下的所有硬件文件（包含 lib/udev, etc/ofono, etc/pulse 等）
           cp -rv /tmp/fp4-ut/overlay/system/* ${ADAPT_DIR}/
-          
-          # 确保 udev 规则在 Debian 体系下能生效（软链接或同时复制到 /etc/udev/rules.d/）
           mkdir -p ${ADAPT_DIR}/etc/udev/rules.d
           if [ -d "${ADAPT_DIR}/lib/udev/rules.d" ]; then
             cp -rv ${ADAPT_DIR}/lib/udev/rules.d/* ${ADAPT_DIR}/etc/udev/rules.d/
@@ -72,15 +69,6 @@ jobs:
           printf "PHOSH_MOBILE_SETTINGS_SCALE=2\n" > ${CFG_DIR}/var/lib/environment/phosh/fairphone-fp4.conf
           printf "Package: adaptation-fairphone-fp4-configs\nVersion: 1.0.0\nSection: misc\nPriority: optional\nArchitecture: arm64\nMaintainer: OpenMoTa3 <noreply@github.com>\nDescription: Device adaptation configs for Fairphone 4 on Droidian\n\n" > ${CFG_DIR}/DEBIAN/control
           dpkg-deb --build --root-owner-group ${CFG_DIR} /tmp/debs/adaptation-fairphone-fp4-configs_1.0.0_arm64.deb
-
-          echo "=== 4. 产物校验（打印内部真实文件） ==="
-          ls -lh /tmp/debs/
-          for deb in /tmp/debs/*.deb; do
-            echo "----------------------------------------"
-            echo ">>> 检查包内容: $deb"
-            dpkg-deb -c "$deb"
-            echo "----------------------------------------"
-          done
 
       - name: Upload Adaptation Artifacts
         uses: actions/upload-artifact@v4
