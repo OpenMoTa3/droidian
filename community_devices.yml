@@ -11,10 +11,10 @@
   packages: &adaptation_generic_packages
     - adaptation-android-generic
 
-.xiaomi_miatoll_packages:
-  packages: &xiaomi_miatoll_packages
-    - adaptation-xiaomi-miatoll
-    - adaptation-miatoll-configs
+.fairphone_fp4_packages:
+  packages: &fairphone_fp4_packages
+    - adaptation-fairphone_fp4
+    - adaptation-fp4-configs
 
 ########################################################################
 # Recovery-flashable rootfses                                          #
@@ -42,15 +42,15 @@ rootfs:
 ########################################################################
 
 #
-# Xiaomi
+# fairphone
 #
 
-# Xiaomi Redmi Note 9S/9 Pro/9 Pro Max/M2 Pro (miatoll)
-xiaomi_miatoll:
+# Fairphone FP4
+fairphone_fp4:
   type: image
   arch: arm64
   edition: phosh
   variant: phone
   apilevel: 30
 
-  packages: *xiaomi_miatoll_packages
+  packages: *fairphone_fp4_packages
